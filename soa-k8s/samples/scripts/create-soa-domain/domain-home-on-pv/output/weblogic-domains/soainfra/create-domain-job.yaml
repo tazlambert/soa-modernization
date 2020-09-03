@@ -1,0 +1,93 @@
+# Copyright (c) 2018, 2020, Oracle Corporation and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: soainfra-create-fmw-infra-sample-domain-job
+  namespace: soans
+spec:
+  template:
+    metadata:
+      labels:
+        weblogic.domainUID: soainfra
+        weblogic.domainName: soainfra
+        app: soainfra-create-fmw-infra-sample-domain-job
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: create-fmw-infra-sample-domain-job
+          image: hyd.ocir.io/axr17p4hbhaw/oracle/soasuite:12.2.1.4
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 7001
+          volumeMounts:
+          - mountPath: /u01/weblogic
+            name: create-fmw-infra-sample-domain-job-cm-volume
+          - mountPath: /u01/oracle/user_projects
+            name: fmw-infra-sample-domain-storage-volume
+          - mountPath: /weblogic-operator/secrets
+            name: fmw-infra-credentials-volume
+          - mountPath: /weblogic-operator/rcu-secrets
+            name: rcu-credentials-volume
+          command: ["/bin/sh"]
+          args: ["/u01/weblogic/create-domain-job.sh"]
+          env:
+            - name: DOMAIN_UID
+              value: "soainfra"
+            - name: ADMIN_SERVER_NAME_SVC
+              value: "adminserver"
+            - name: T3_CHANNEL_PORT
+              value: "30012"
+            - name: T3_PUBLIC_ADDRESS
+              value: "129.148.134.239"
+            - name: MANAGED_SERVER_NAME_BASE_SVC
+              value: "soa-server"
+            - name: CREATE_DOMAIN_SCRIPT_DIR
+              value: "/u01/weblogic"
+            - name: DOMAIN_ROOT_DIR
+              value: "/u01/oracle/user_projects"
+            - name: DOMAIN_HOME_DIR
+              value: "/u01/oracle/user_projects/domains/soainfra"
+            - name: DOMAIN_LOGS_DIR
+              value: "/u01/oracle/user_projects/logs/soainfra"
+            - name: CUSTOM_DOMAIN_NAME
+              value: "soainfra"
+            - name: CUSTOM_ADMIN_LISTEN_PORT
+              value: "7001"
+            - name: CUSTOM_ADMIN_NAME
+              value: "AdminServer"
+            - name: CUSTOM_ADMIN_HOST
+              value: "%CUSTOM_ADMIN_HOST%"
+            - name: CUSTOM_MANAGEDSERVER_PORT
+              value: "8001"
+            - name: CUSTOM_MANAGED_BASE_NAME
+              value: "soa_server"
+            - name: CUSTOM_MANAGED_SERVER_COUNT
+              value: "5"
+            - name: CUSTOM_CLUSTER_NAME
+              value: "soa_cluster"
+            - name: CUSTOM_RCUPREFIX
+              value: "SOA1"
+            - name: CUSTOM_PRODUCTION_MODE
+              value: "true"
+            - name: CUSTOM_CONNECTION_STRING
+              value: "oracle-db.soans.svc.cluster.local:1521/devpdb.k8s"
+            - name: EXPOSE_T3_CHANNEL_PREFIX
+              value: "true"
+            - name: DOMAIN_TYPE
+              value: "soaessosb"
+      volumes:
+        - name: create-fmw-infra-sample-domain-job-cm-volume
+          configMap:
+            name: soainfra-create-fmw-infra-sample-domain-job-cm
+        - name: fmw-infra-sample-domain-storage-volume
+          persistentVolumeClaim:
+            claimName: soainfra-domain-pvc
+        - name: fmw-infra-credentials-volume
+          secret:
+            secretName: soainfra-domain-credentials
+        - name: rcu-credentials-volume
+          secret:
+            secretName: soainfra-rcu-credentials
+      imagePullSecrets:
+      - name: image-secret
