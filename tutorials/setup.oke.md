@@ -4,15 +4,17 @@ Oracle Kubernetes Engine is a fully-managed, scalable, and highly available serv
 
 ### Prerequisites ###
 
-[Oracle Cloud Infrastructure](https://cloud.oracle.com/en_US/cloud-infrastructure) enabled account.
+[Oracle Cloud Infrastructure](https://cloud.oracle.com/en_US/cloud-infrastructure) enabled system administrator account. If you are not in the Administrators group, then following user policy statements are required:
++ allow group <group-name> to manage instance-family in <location>
++ allow group <group-name> to use subnets in <location>
++ allow group <group-name> to read virtual-network-family in <location>
++ allow group <group-name> to use vnics in <location>
++ allow group <group-name> to inspect compartments in <location>
++ allow group <group-name> to manage cluster-family in <location>
+An example user policy statement is **allow group dev-team to manage cluster-family in tenancy**
+For additional guidance with OKE IAM policies for features such as 'QUICK CREATE', please visit [Policy Configuration for Cluster Creation and Deployment](https://docs.cloud.oracle.com/iaas/Content/ContEng/Concepts/contengpolicyconfig.htm).
 
-To create Container Engine for Kubernetes (OKE) the following steps need to be completed:
-
-- Create network resources (VCN, Subnets, Security lists, etc.)
-- Create Cluster.
-- Create NodePool.
-
-This tutorial shows the simplest way the *Quick Start* feature creates and configures all the necessary resources for a 3 Kubernetes node cluster. All the nodes will be deployed in different Availability Domains to ensure high availability.
+This tutorial shows the simplest way the *Quick Start* feature creates and configures all the necessary resources for a Kubernetes 3 node cluster. All the nodes will be deployed in different Availability Domains to ensure high availability.
 
 More information about OKE and custom cluster deployment:
 
