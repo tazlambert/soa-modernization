@@ -16,6 +16,7 @@ This lab is designed for people with some experience with OCI, Kubernetes, Oracl
 + **Linux Desktop with Oracle Cloud Infrastructure CLI, kubectl, helm.** Preferred to have bastion host in OCI
 + **[Docker](https://hub.docker.com/signup) account.**
 + **[Oracle Support](https://support.oracle.com/portal/) account.**
++ **Oracle SOA Docker Image [Refer to this Dcumentations](https://support.oracle.com/portal/).**
 
 ### Installing Oracle SOA Domain on Oracle Kubernetes Engine ###
 
