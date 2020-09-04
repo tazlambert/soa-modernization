@@ -11,6 +11,7 @@ Oracle Kubernetes Engine is a fully-managed, scalable, and highly available serv
 + allow group <group-name> to use vnics in <location>
 + allow group <group-name> to inspect compartments in <location>
 + allow group <group-name> to manage cluster-family in <location>
+
 An example user policy statement is **allow group dev-team to manage cluster-family in tenancy**
 For additional guidance with OKE IAM policies for features such as 'QUICK CREATE', please visit [Policy Configuration for Cluster Creation and Deployment](https://docs.cloud.oracle.com/iaas/Content/ContEng/Concepts/contengpolicyconfig.htm).
 
@@ -33,74 +34,39 @@ In the Create Cluster dialog, select Quick Create and click Launch Workflow.
 ![alt text](images/003.jpg)
 
 On the Create Cluster page specify the below values:
++ NAME: soaoke
++ COMPARTMENT: soademo
++ KUBERNETES VERSION: v1.15.7 or v1.16.8
++ CHOOSE VISIBILITY TYPE: Private or Public
++ SHAPE: VM.Standard2.1  (Choose the available shape for worker node pool. The list shows only those shapes available in your tenancy that are supported by Container Engine for Kubernetes. See [Supported Images and Shapes for Worker Nodes](https://docs.cloud.oracle.com/en-us/iaas/Content/ContEng/Reference/contengimagesshapes.htm).)
++ NUMBER OF NODES:  3 (The number of worker nodes to create in the node pool, placed in the regional subnet created for the 'quick cluster').
++ Click Show Advanced Options and enter PUBLIC SSK KEY:  ssh-rsa AA......bmVnWgX/ (public key from your PuTTy GEN or SSH-KEYGEN) 
 
-#### Create Policy ####
+![alt text](images/004.jpg)
 
-A service policy allows OKE to create resources in tenancy such as compute. An OKE resource policy or policies enables you to regulate which groups in your tenancy can do what with the OKE API.
+Next to review the details you entered for the new cluster.
 
-Optionally create more resource policies if you want to regulate which groups can access different parts of the OKE service.
+![alt text](images/005.jpg)
 
-Open the navigation menu. Under **Identity**, click **Policies**.
+Click Create Cluster to create the new network resources and the new cluster.
 
-![alt text](images/oke/004.oci.console.png)
+![alt text](images/006.jpg)
 
-Select on left hand side menu a "root" compartment for your account (see screenshot). A list of the policies in the compartment you're viewing is displayed. If you want to attach the policy to a compartment other than the one you're viewing, select the desired compartment from the list on the left. Click **Create Policy**.
+Container Engine for Kubernetes starts creating resources (as shown in the Creating cluster and associated network resources dialog). Click Close to return to the Console.
 
-![alt text](images/oke/005.policies.png)
+![alt text](images/007.jpg)
 
-Enter the following:
+Initially, the new cluster appears in the Console with a status of Creating. When the cluster has been created, it has a status of Active.
 
-- **Name:** A unique name for the policy. The name must be unique across all policies in your tenancy. You cannot change this later.
-- **Description:** A friendly description.
-- **Policy Versioning:** Select **Keep Policy Current**. It ensures that the policy stays current with any future changes to the service's definitions of verbs and resources.
-- **Statement:** A policy statement. It MUST be: `allow service OKE to manage all-resources in tenancy`
-- **Tags:** Don't apply tags.
+![alt text](images/008.jpg)
 
-Click **Create**.
+Click on the "Node Pools" on Resources and then "View" to view the Node Pool and worker node status
 
-![alt text](images/oke/006.create.oke.policy.png)
+![alt text](images/009.jpg)
 
-#### Create OKE (Oracle Container Engine for Kubernetes) cluster ####
+You can view the status of Worker node and make sure all Node State in Active and Kubernetes Node Condition is Ready. Note:  The worker node gets listed in the kubectl command once the "Kubernetes Node Condition" is Ready.
 
-*Quick Create* feature uses default settings to create a *quick cluster* with new network resources as required. This approach is the fastest way to create a new cluster. If you accept all the default values, you can create a new cluster in just a few clicks. New network resources for the cluster are created automatically, along with a node pool and three worker nodes.
-
-In the Console, open the navigation menu. Under *Solutions, Platform and Edge*, go to *Developer Services* and click **Container Clusters (OKE)**.
-
-![alt text](images/oke/007.clusters.png)
-
-On the Cluster List page, click **Create Cluster**.
-
-![alt text](images/oke/008.create.cluster.png)
-
-Specify the following configuration details:
-
-- **Name**: The name of the new cluster. For example the default *cluster1*
-- **Kubernetes Version**: The Kubernetes version that runs on the master nodes and worker nodes of the cluster. Select the latest version.
-- Select **Quick Create** to create a new cluster with default settings, along with new network resources for the new cluster.
-The Create Virtual Cloud Network panel shows the network resources that will be created for you by default, namely a VCN, two load balancer subnets, and three worker node subnets.
-
-	The Create Node Pool panel shows the fixed properties of the first node pool in the cluster that will be created for you:
-
-	- the name of the node pool (always pool1)
-	- the compartment in which the node pool will be created (always the same as the one in which the new network resources will reside)
-	- the version of Kubernetes that will run on each worker node in the node pool (always the same as the version specified for the master nodes) 
-        - the image to use on each node in the node pool
-
-The Create Node Pool panel also contains some node pool properties that you can change.
-- **Shape**: The shape to use for each node in the node pool. The shape determines the number of CPUs and the amount of memory allocated to each node. The list shows only those shapes available in your tenancy that are supported by Container Engine for Kubernetes. Select the available *VM.Standard2.1*
-- **Quantity per Subnet**: The number of worker nodes to create for the node pool in each subnet. Set *1*
-- **Public SSH Key**: Leave this field empty (screenshot contains some key - but for simplicity leave this empty)
-- **Kubernetes Dashboard Enabled**: leave the default true.
-- **Tiller (Helm) Enabled**: leave the default true.
-
-Click **Create** to create the new network resources and the new cluster.
-
-![alt text](images/oke/009.quick.part.1.png)
-![alt text](images/oke/009.quick.part.2.png)
-![alt text](images/oke/009.quick.part.3.png)
-![alt text](images/oke/009.quick.part.3b.png)
-
-Click **Close** to return to the Console.
+![alt text](images/010.jpg)
 
 #### Prepare OCI CLI to download Kubernetes configuration file ####
 
@@ -118,11 +84,11 @@ Before you start the setup collect the necessary information using your OCI cons
 
 In the Console click on your OCI user name and select User Settings. On the user details page you can find the *user OCID*. Click **Copy** and paste temporary to a text editor.
 
-![alt text](images/oke/010.user.ocid.png)
+![alt text](images/011.png)
 
 To identify *tenancy OCID* in the Console, open the navigation menu. Under *Governance and Administration*, go to *Administration* and click **Tenancy Details**. Click **Copy** to get tenancy OCID on clipboard. Paste to your text editor for OCI CLI configuration.
 
-![alt text](images/oke/011.tenancy.ocid.png)
+![alt text](images/012.png)
 
 Leave the console open during CLI configuration and copy the required information from the console page or from text editor where you collected the OCIDs (user and tenancy). When you want to accept the default value what is offered in square bracket just hit Enter. Now we need to install OCI CLI, by doing this:
 ```
@@ -178,11 +144,11 @@ Generate new API signing key. For the location accept default. Don't use a passp
 
 The final step to complete the CLI setup to upload your freshly generated public key through the console. The public key if you haven't changed it during setup can be found in the `/home/oracle/.oci/` directory and it's name `oci_api_key_public.pem`. Using your favourite way copy its content to the clipboard. While viewing user details click **Add Public Key**.
 
-![alt text](images/oke/012.user.settings.png)
+![alt text](images/013.png)
 
 Copy the content of the `oci_api_key_public.pem` file into the *PUBLIC KEY* text area and click **Add**.
 
-![alt text](images/oke/013.pem.public.png)
+![alt text](images/014.png)
 
 The key is uploaded and its fingerprint is displayed in the list.
 
@@ -197,17 +163,13 @@ chmod 755 kubectl
 ```
 Note: If you need to install `kubectl` then follow the [documentation](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
 
-The CLI setup now is done. To complete the `kubectl` configuration open the navigation menu and under **Developer Services**, click **Clusters**. Select your cluster and click to get the detail page.
+The CLI setup now is done. To complete the `kubectl` configuration open the navigation menu and under **Developer Services**, click **Kubernetes Clusters**. Select your cluster and click to get the detail page and click **Access Kubeconfig**.
 
-![alt text](images/oke/014.back.to.cluster.details.png)
-
-Click **Access Kubeconfig**.
-
-![alt text](images/oke/015.access.kubeconfig.png)
+![alt text](images/015.jpg)
 
 A dialog pops up which contains the customized OCI command that you need to execute to create Kubernetes configuration file.
 
-![alt text](images/oke/016.oci.cluster.download.script.png)
+![alt text](images/016.jpg)
 
 After making sure the firewall and SELINUX is disabled or configured properly then copy and execute the commands on your desktop where OCI CLI was configured. For example:
 
