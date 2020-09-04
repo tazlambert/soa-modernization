@@ -45,7 +45,3 @@ By the time this hands on lab created below are the tools that being used and it
 + **[Kube Prometheus v0.3.0](https://github.com/coreos/kube-prometheus/releases/tag/v0.3.0)** 
 + **[Elasticsearch v6.8.0](https://github.com/elastic/elasticsearch/releases/tag/v6.8.0)** 
 + **[Kibana v6.8.0](https://github.com/elastic/kibana/releases/tag/v6.8.0)** 
-
-## License ##
-Copyright (c) 2020 Oracle and/or its affiliates
-The Universal Permissive License (UPL), Version 1.0
