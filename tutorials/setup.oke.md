@@ -22,7 +22,7 @@ More information about OKE and custom cluster deployment:
 
 Sign in using your Cloud Services link you got in email during the registration process. (If this is the first time you have to change the generated first time password.)
 
-![alt text](images/oke/001.cloud.link.email.png)
+![alt text](images/asd.jpg)
 
 Use the username and the password distributed by the instructor. Click **Sign In**.
 
