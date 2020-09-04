@@ -16,25 +16,23 @@ For additional guidance with OKE IAM policies for features such as 'QUICK CREATE
 
 This tutorial shows the simplest way the *Quick Start* feature creates and configures all the necessary resources for a Kubernetes 3 node cluster. All the nodes will be deployed in different Availability Domains to ensure high availability.
 
-More information about OKE and custom cluster deployment:
-
-- [Oracle Container Engine documentation](https://docs.cloud.oracle.com/iaas/Content/ContEng/Concepts/contengoverview.htm)
+More information about OKE and custom cluster deployment [Oracle Container Engine documentation](https://docs.cloud.oracle.com/iaas/Content/ContEng/Concepts/contengoverview.htm)
 
 #### Open the OCI console ####
 
-Sign in using your Cloud Services link you got in email during the registration process. (If this is the first time you have to change the generated first time password.)
+Sign in to your Oracle Cloud Account and in the console open the navigation menu. Under Solutions and Platform, go to Developer Services and click Container Clusters (OKE).
 
-![alt text](images/asd.jpg)
+![alt text](images/001.jpg)
 
-Use the username and the password distributed by the instructor. Click **Sign In**.
+Choose a Compartment you have permission to work in. Here we will use soademo compartment. On the Cluster List page, select the Compartment as soademo and click Create Cluster.
 
-![alt text](images/oke/002.login.png)
+![alt text](images/002.jpg)
 
-Click the menu icon at the top left corner and select **Compute** on the left sliding menu.
+In the Create Cluster dialog, select Quick Create and click Launch Workflow.
 
-![alt text](images/oke/003.compute.console.png)
+![alt text](images/003.jpg)
 
-You have to land on the OCI console page.
+On the Create Cluster page specify the below values:
 
 #### Create Policy ####
 
