@@ -24,9 +24,9 @@ This will demonstrate the process of installing Oracle SOA domain into Oracle Ku
 
 1. [Setup Oracle Kubernetes Engine to orchestrate the Docker image](tutorials/setup.oke.md)
 2. [Setup WebLogic Kubernetes Operator to orchestrate SOA in Kubernetes](tutorials/setup.wko.md)
-3. [Deploy SOA Domain to Kubernetes](tutorials/deploy.weblogic.md)
+3. [Deploy SOA Domain to Kubernetes](tutorials/deploy.soa.domain.md)
 4. [Deploy Ingress Load Balancer for SOA in Kubernetes](tutorials/deploy.load.balancer.md)
-5. [Update SOA deployment to improve existing SOA domain](tutorials/update.domain.docker.image.md)
+5. [Update SOA deployment to improve existing SOA domain](tutorials/update.soa.domain.md)
 
 ## Components ##
 
