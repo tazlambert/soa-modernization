@@ -92,7 +92,12 @@ To identify *tenancy OCID* in the Console, open the navigation menu. Under *Gove
 
 Leave the console open during CLI configuration and copy the required information from the console page or from text editor where you collected the OCIDs (user and tenancy). When you want to accept the default value what is offered in square bracket just hit Enter. Now we need to install OCI CLI, by doing this:
 ```
+cd
+mkdir bin
 bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)"
+cd
+vi .bashrc
+export PATH=$HOME/bin:$PATH
 ```
 Note: If you need to install OCI CLI then follow the [documentation](https://docs.cloud.oracle.com/iaas/Content/API/SDKDocs/cliinstall.htm).
 
@@ -178,6 +183,8 @@ After making sure the firewall and SELINUX is disabled or configured properly th
 
 Note! For `kubectl` try to use by defult `$HOME/.kube/config` configuration file. If you save it to a different location and use different filename, don't forget to set the `KUBECONFIG`  variable to the configuration file. E.g.:
 
+	cd
+	vi .bashrc
 	export KUBECONFIG=another_folder_path/kubernetes_config_file_name
 
 Now check that `kubectl` is working, for example using the `get node` command:
