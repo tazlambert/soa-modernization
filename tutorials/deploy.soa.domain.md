@@ -68,43 +68,40 @@ docker login hyd.ocir.io -u axr17p4hbhaw/oracleidentitycloudservice/lambertus.wa
 docker tag localhost/oracle/database-enterprise:12.2.0.1-slim hyd.ocir.io/axr17p4hbhaw/oracle/database-enterprise:12.2.0.1
 docker tag localhost/oracle/soa-suite:12.2.1.4 hyd.ocir.io/axr17p4hbhaw/oracle/dsoa-suite:12.2.1.4
 docker push hyd.ocir.io/axr17p4hbhaw/oracle/database-enterprise:12.2.0.1
-docker push hyd.ocir.io/axr17p4hbhaw/oracle/dsoa-suite:12.2.1.4
+docker push hyd.ocir.io/axr17p4hbhaw/oracle/soa-suite:12.2.1.4
 ```
 
-### Preparing the Kubernetes cluster to run SOA domains ###
+### Preparing WebLogic Kubernetes Operator for SOA domains in OKE ###
 
-Create the domain namespace:
+Prepare the environment for SOA Domain creation:
 ```
-kubectl create namespace wls-k8s-domain-ns
+kubectl create namespace soans
 ```
-Create a Kubernetes secret containing the Administration Server boot credentials:
+Configure the operator to manage domain namespace
 ```
-kubectl -n wls-k8s-domain-ns create secret generic wls-k8s-domain-weblogic-credentials --from-literal=username=weblogic --from-literal=password=welcome1
+cd ~/weblogic-kubernetes-operator
+helm upgrade --reuse-values --namespace opns --set "domainNamespaces={soans}" --wait weblogic-kubernetes-operator kubernetes/charts/weblogic-operator
 ```
-Label the secret with domainUID:
+Create a Kubernetes secret containing the Administration Server credentials (username : weblogic and password: Welcome1) in the same Kubernetes namespace as the domain (soans):
 ```
-kubectl label secret wls-k8s-domain-weblogic-credentials -n wls-k8s-domain-ns weblogic.domainUID=wls-k8s-domain weblogic.domainName=wls-k8s-domain
+cd ~/weblogic-kubernetes-operator/kubernetes/samples/scripts/create-weblogic-domain-credentials
+./create-weblogic-credentials.sh -u weblogic -p Welcome1 -n soans -d soainfra -s soainfra-domain-credentials
+```
+Create a Kubernetes secret for the RCU in the same Kubernetes namespace as the domain (soans) with below details:
+Schema user          : SOA1
+Schema password      : Oradoc_db1                    
+DB sys user password : Oradoc_db1
+Domain name          : soainfra
+Domain Namespace     : soans
+Secret name          : soainfra-rcu-credentials 
+```
+cd ~/weblogic-kubernetes-operator/kubernetes/samples/scripts/create-rcu-credentials
+./create-rcu-credentials.sh -u SOA1 -p Oradoc_db1 -a sys -q Oradoc_db1 -d soainfra -n soans -s soainfra-rcu-credentials
 ```
 Create OCI image Registry secret to allow Kubernetes to pull you custome WebLogic image. Replace the registry server region code, username and auth token respectively.
-WARNING!!! - be careful about username - docker-username parameter should have a value of YOUR_TENANCY_NAME/YOUR_OCIR_USERNAME - don't skip YOUR_TENANCY_NAME please.
+WARNING!!! - be careful about username - docker-username parameter should have a value of YOUR_OCIR_NAME/YOUR_OCIR_USERNAME - don't skip YOUR_TENANCY_NAME please.
 ```
-kubectl create secret docker-registry ocirsecret \
-  -n wls-k8s-domain-ns \
-  --docker-server=YOUR_HOME_REGION_CODE.ocir.io \
-  --docker-username='YOUR_TENANCY_NAME/YOUR_OCIR_USERNAME' \
-  --docker-password='YOUR_OCIR_AUTH_TOKEN' \
-  --docker-email='YOUR_EMAIL'
-```
-For example:
-```
-kubectl create secret docker-registry ocirsecret -n wls-k8s-domain-ns --docker-server=phx.ocir.io --docker-username='axrtkaqgdfo8/oracleidentitycloudservice/john.p.smith@testing.com' --docker-password='xxxxxxxxxx' --docker-email='john.p.smith@testing.com'
-```
-Now for WebLogic Domain log, it will requires its mounted directory to be in full permission mode (777) to do that we need to mount the /shared/logs to the bastion and create root folder and give 777 permission:
-```
-sudo mkdir /mnt/logs
-sudo mount 10.0.10.9:/shared/logs /mnt/logs
-sudo mkdir /mnt/logs/wls-k8s-domain
-sudo chmod -Rf 777 /mnt/logs/wls-k8s-domain
+kubectl create secret docker-registry ocirsecret -n soans --docker-server=hyd.ocir.io --docker-username='axrtkaqgdfo8/oracleidentitycloudservice/john.p.smith@testing.com' --docker-password='xxxxxxxxxx' --docker-email='john.p.smith@testing.com'
 ```
 Then now we need to create PV and PVC for this domain:
 ```
@@ -122,15 +119,15 @@ Edit the input file
 version: create-weblogic-sample-domain-pv-pvc-inputs-v1
 
 # The base name of the pv and pvc
-baseName: wls-k8s-domain
+baseName: domain
 
 # Unique ID identifying a domain.
 # If left empty, the generated pv can be shared by multiple domains
 # This ID must not contain an underscope ("_"), and must be lowercase and unique across all domains in a Kubernetes cluster.
-domainUID:
+domainUID: soainfra
 
 # Name of the namespace for the persistent volume claim
-namespace: wls-k8s-domain-ns
+namespace: soans
 
 # Persistent volume type for the persistent storage.
 # The value must be 'HOST_PATH' or 'NFS'.
@@ -150,7 +147,7 @@ weblogicDomainStorageNFSServer: 10.0.10.9
 # Note that the path where the domain is mounted in the WebLogic containers is not affected by this
 # setting, that is determined when you create your domain.
 # The following line must be uncomment and customized:
-weblogicDomainStoragePath: /shared/logs
+weblogicDomainStoragePath: /sharevoluem/soa
 
 # Reclaim policy of the persistent storage
 # The valid values are: 'Retain', 'Delete', and 'Recycle'
@@ -167,113 +164,167 @@ Expected output will be like below:
 ```
 Input parameters being used
 export version="create-weblogic-sample-domain-pv-pvc-inputs-v1"
-export baseName="wls-k8s-domain"
-export namespace="wls-k8s-domain-ns"
+export baseName="domain"
+export domainUID="soainfra"
+export namespace="soans"
 export weblogicDomainStorageType="NFS"
 export weblogicDomainStorageNFSServer="10.0.10.9"
-export weblogicDomainStoragePath="/shared/logs"
+export weblogicDomainStoragePath="/sharevolume/soa"
 export weblogicDomainStorageReclaimPolicy="Retain"
 export weblogicDomainStorageSize="10Gi"
 
-Generating output//pv-pvcs/wls-k8s-domain-pv.yaml
-Generating output//pv-pvcs/wls-k8s-domain-pvc.yaml
-Checking if the persistent volume wls-k8s-domain-pv exists
-The persistent volume wls-k8s-domain-pv does not exist
-Creating the persistent volume wls-k8s-domain-pv
-persistentvolume/wls-k8s-domain-pv created
-Checking if the persistent volume wls-k8s-domain-pv is Available
-Checking if the persistent volume claim wls-k8s-domain-pvc in NameSpace wls-k8s-domain-ns exists
-No resources found in wls-k8s-domain-ns namespace.
-The persistent volume claim wls-k8s-domain-pvc does not exist in NameSpace wls-k8s-domain-ns
-Creating the persistent volume claim wls-k8s-domain-pvc
-persistentvolumeclaim/wls-k8s-domain-pvc created
-Checking if the persistent volume wls-k8s-domain-pv is Bound
+Generating output//pv-pvcs/soainfra-domain-pv.yaml
+Generating output//pv-pvcs/soainfra-domain-pvc.yaml
+Checking if the persistent volume soainfra-domain-pv exists
+The persistent volume soainfra-domain-pv does not exist
+Creating the persistent volume soainfra-domain-pv
+persistentvolume/soainfra-domain-pv created
+Checking if the persistent volume soainfra-domain-pv is Available
+Checking if the persistent volume claim soainfra-domain-pvc in NameSpace soans exists
+No resources found in soans namespace.
+The persistent volume claim soainfra-domain-pvc does not exist in NameSpace soans
+Creating the persistent volume claim soainfra-domain-pvc
+persistentvolumeclaim/soainfra-domain-pvc created
+Checking if the persistent volume soainfra-domain-pv is Bound
 The following files were generated:
-  output//pv-pvcs/wls-k8s-domain-pv.yaml
-  output//pv-pvcs/wls-k8s-domain-pvc.yaml
+  output//pv-pvcs/soainfra-domain-pv.yaml
+  output//pv-pvcs/soainfra-domain-pvc.yaml
 
 Completed
 ```
+Create the PV and PVC using the configuration files created in previous step as shown below:
+```
+kubectl create -f  output/pv-pvcs/soainfra-domain-pv.yaml
+kubectl create -f  output/pv-pvcs/soainfra-domain-pvc.yaml
+```
+### Deploy Oracle Database and SOA RCU on Kubernetes ###
 
-#### Update WebLogic Operator configuration ####
+The Oracle Database Docker images are supported only for non-production use. For more details, see My Oracle Support note: Oracle Support for Database Running on Docker (Doc ID 2216342.1). For production usecase it is suggested to use a standalone db. Below are steps to create the database in a container without using PV. 
+```
+cd ~/weblogic-kubernetes-operator/kubernetes/samples/scripts/create-oracle-db-service
+./start-db-service.sh -i  hyd.ocir.io/axr17p4hbhaw/oracle/database-enterprise:12.2.0.1 -s image-secret -n soans
+```
+Once database is created successfully, you can use the database connection string, "oracle-db.soans.svc.cluster.local:1521/devpdb.k8s", as an rcuDatabaseURL parameter in the create-domain-inputs.yaml file.
+```
+Done ! The database is ready for use .
+Oracle DB Service is RUNNING with NodePort [30011]
+Oracle DB Service URL [oracle-db.soans.svc.cluster.local:1521/devpdb.k8s]
+```
+Run the RCU to create SOA schemas, to install SOA schemas, run the "create-rcu-schema.sh" script with below inputs:
+-s <RCU PREFIX>   Here: SOA1 
+-t <SOA domain type>  Here: soaessosb
+-p <ImagePullSecret name> Here: image-secret
+-d <DB connection string>  Here: oracle-db.soans.svc.cluster.local:1521/devpdb.k8s 
+-i <SOASuite image>   Here: hyd.ocir.io/axr17p4hbhaw/oracle/soa-suite:12.2.1.4
 
-Once you have your domain namespace (WebLogic domain not yet deployed) you have to update loadbalancer's and operator's configuration about where the domain will be deployed.
+```  
+cd ~/weblogic-kubernetes-operator/kubernetes/samples/scripts/create-rcu-schema
+./create-rcu-schema.sh -s SOA1 -t soaessosb -d oracle-db.soans.svc.cluster.local:1521/devpdb.k8s  -p image-secret -i hyd.ocir.io/axr17p4hbhaw/oracle/soa-suite:12.2.1.4 -n soans -q Oradoc_db1 -r Oradoc_db1
+```
 
-Make sure before execute domain `helm` install you are in the WebLogic Operator's local Git repository folder.
+Expected output will be:
 ```
-cd
-cd weblogic-kubernetes-operator/
-```
-To update operator execute the following `helm upgrade` command:
-```
-helm upgrade weblogic-operator -n weblogic-operator-ns --reuse-values --set "domainNamespaces={wls-k8s-domain-ns}" --wait kubernetes/charts/weblogic-operator
-```
-```
-Release "weblogic-operator" has been upgraded. Happy Helming!
-NAME: weblogic-operator
-LAST DEPLOYED: Sat May  9 14:04:51 2020
-NAMESPACE: weblogic-operator-ns
-STATUS: deployed
-REVISION: 2
-TEST SUITE: None
-```
-Please note the only updated parameter in this case is the domain namespace.
+Component schemas created:
+-----------------------------
+Component                                    Status         Logfile
 
-#### Deploy WebLogic domain on Kubernetes ####
+Common Infrastructure Services               Success        /tmp/RCU2020-06-01_15-36_974422936/logs/stb.log
+Oracle Enterprise Scheduler                  Success        /tmp/RCU2020-06-01_15-36_974422936/logs/ess.log
+Oracle Platform Security Services            Success        /tmp/RCU2020-06-01_15-36_974422936/logs/opss.log
+SOA Infrastructure                           Success        /tmp/RCU2020-06-01_15-36_974422936/logs/soainfra.log
+User Messaging Service                       Success        /tmp/RCU2020-06-01_15-36_974422936/logs/ucsums.log
+Audit Services                               Success        /tmp/RCU2020-06-01_15-36_974422936/logs/iau.log
+Audit Services Append                        Success        /tmp/RCU2020-06-01_15-36_974422936/logs/iau_append.log
+Audit Services Viewer                        Success        /tmp/RCU2020-06-01_15-36_974422936/logs/iau_viewer.log
+Metadata Services                            Success        /tmp/RCU2020-06-01_15-36_974422936/logs/mds.log
+WebLogic Services                            Success        /tmp/RCU2020-06-01_15-36_974422936/logs/wls.log
 
-To deploy WebLogic domain you need to create a domain resource definition which contains the necessary parameters for the operator to start the WebLogic domain properly.
+Repository Creation Utility - Create : Operation Completed
+[INFO] Modify the domain.input.yaml to use [oracle-db.soans.svc.cluster.local:1521/devpdb.k8s] as rcuDatabaseURL and [SOA1] as rcuSchemaPrefix
+```  
 
-You can modify the provided sample in the local repository or better if you make a copy first.
+### Deploy Oracle SOA Domain on Kubernetes ###
+
+To deploy SOA domain you need to create a domain resource definition which contains the necessary parameters for the operator to start the SOA domain properly. You can modify the provided sample in the local repository or better if you make a copy first.
 ```
-cp /u01/content/weblogic-kubernetes-operator/kubernetes/samples/scripts/create-weblogic-domain/manually-create-domain/domain.yaml \
-/u01/domainKube.yaml
+cd ~/weblogic-kubernetes-operator/kubernetes/samples/scripts/create-soa-domain/domain-home-on-pv
+vi create-domain-inputs.yaml
 ```
 Use your favourite text editor to modify domain resource definition values. If necessary remove comment leading character (#) of the parameter to activate. Always enter space before the value, after the colon.
-
-Set the following values:
-
-| Key | Value | Example |
-|-|-|-|
-|name:|wls-k8s-domain||
-|namespace:|wls-k8s-domain-ns||
-|weblogic.domainUID:|wls-k8s-domain||
-|domainHome:|/u01/oracle/user_projects/domains/wls-k8s-domain||
-|image:|YOUR_OCI_REGION_CODE.ocir.io/YOUR_TENANCY_NAME/weblogic-operator-tutorial:latest|"phx.ocir.io/johnpsmith/weblogic-modernization:latest"|
-|imagePullPolicy:|"Always"||
-|imagePullSecrets: <br>- name:|imagePullSecrets: <br>- name: ocirsecret||
-|webLogicCredentialsSecret: <br>&nbsp;name:|webLogicCredentialsSecret: <br>&nbsp;name: wls-k8s-domain-weblogic-credentials||
-|imagePullPolicy:|"Always"||
-|logHomeEnabled:|true||
-|logHome:|/shared/logs/wls-k8s-domain||
-|volume:<br>- name:<br>- persistentVolumeClaim:<br>    claimName:|volume:<br>- name: weblogic-domain-storage-volume<br>- persistentVolumeClaim:<br>    claimName: wls-k8s-domain-pvc||
-|volumeMounts:<br>- mountPath:<br>- name:|volumeMounts:<br>- mountPath: /shared/logs<br>- name: weblogic-domain-storage-volume||
-|annotations:<br>- prometheus.io/scrape: |annotations:<br>- prometheus.io/scrape: false||
-
-Your `domainKube.yaml` should be almost the same what is [available in the imported tutorial repository (click the link if you want to compare and check)](https://github.com/tazlambert/weblogic-operator-tutorial/blob/master/domainKube.yaml).
-
-Upload domainKube.yaml to your Github repository and place it in the root directory:
-
-![](images/deploy.domain/uploadDomainKube.png)
-
-To deploy for the first time it can be invoked using this command in bastion:
 ```
-kubectl apply -f domainKube.yaml
+domainType: soaessosb
+initialManagedServerReplicas: 1
+image: hyd.ocir.io/axr17p4hbhaw/oracle/soa-suite:12.2.1.4
+imagePullSecretName: image-secret
+rcuDatabaseURL: oracle-db.soans.svc.cluster.local:1521/devpdb.k8s
 ```
-Check the introspector job which needs to be run first:
+Run the create-domain.sh script to create a domain:
 ```
-$ kubectl get pod -n wls-k8s-domain-ns
-NAME                                         READY     STATUS              RESTARTS   AGE
-sample-domain1-introspect-domain-job-kcn4n   0/1       ContainerCreating   0          7s
+cd ~/weblogic-kubernetes-operator/kubernetes/samples/scripts/create-soa-domain/domain-home-on-pv
+./create-domain.sh -i create-domain-inputs.yaml -o output
 ```
-Check periodically the pods in the domain namespace and soon you will see the servers are starting:
+Expected output will be:
 ```
-$ kubectl get po -n wls-k8s-domain-ns -o wide
-NAME                             READY     STATUS    RESTARTS   AGE       IP            NODE            NOMINATED NODE
-sample-domain1-admin-server      1/1       Running   0          2m        10.244.2.10   130.61.84.41    <none>
-sample-domain1-managed-server1   1/1       Running   0          1m        10.244.2.11   130.61.84.41    <none>
-sample-domain1-managed-server2   0/1       Running   0          1m        10.244.1.4    130.61.52.240   <none>
+Domain soainfra was created and will be started by the WebLogic Kubernetes Operator
+
+The following files were generated:
+  output/weblogic-domains/soainfra/create-domain-inputs.yaml
+  output/weblogic-domains/soainfra/create-domain-job.yaml
+  output/weblogic-domains/soainfra/domain.yaml
+
+Completed
 ```
-You have to see three running pods similar to the result above. If you don't see all the running pods please wait and check periodically. The whole domain deployment may take up to 2-3 minutes depending on the compute shapes.
+Once the create-domain.sh is success, it generates the "output/weblogic-domains/soainfra/domain.yaml" using which you can create the Kubernetes resource domain which starts the domain and servers as shown below:
+```
+cd ~/weblogic-kubernetes-operator/kubernetes/samples/scripts/create-soa-domain/domain-home-on-pv
+kubectl create -f output/weblogic-domains/soainfra/domain.yaml
+```
+Verify that Kubernetes Domain Object (name: soainfra)  is created:
+```
+kubectl get domain -n soans
+NAME       AGE
+soainfra   28s
+```
+Once you create the domain, "introspect pod" will get created. This inspects the Domain Home and then start the "soainfra-adminserver" pod.  Once the "soainfra-adminserver" pod comes up successfully, then the managed server pods are started in parallel. Watch the "soans" namespace for the status of domain creation with below command:
+```
+kubectl get po -n soans -o wide -w
+```
+Verify that SOA Domain server pods and services are created and in READY state.
+```
+$  kubectl get all -n soans
+NAME                                             READY   STATUS      RESTARTS   AGE
+pod/oracle-db-78b7566996-vsg89                   1/1     Running     0          27h
+pod/rcu                                          1/1     Running     0          26h
+pod/soainfra-adminserver                         1/1     Running     0          23m
+pod/soainfra-create-soa-infra-domain-job-9n89n   0/1     Completed   0          23h
+pod/soainfra-osb-server1                         1/1     Running     0          19m
+pod/soainfra-soa-server1                         1/1     Running     0          19m
+
+NAME                                   TYPE           CLUSTER-IP      EXTERNAL-IP      PORT(S)          AGE
+service/oracle-db                      LoadBalancer   10.96.6.36      129.146.236.86   1521:30011/TCP   27h
+service/soainfra-adminserver           ClusterIP      None            <none>           7001/TCP         23h
+service/soainfra-cluster-osb-cluster   ClusterIP      10.96.237.199   <none>           9001/TCP         23h
+service/soainfra-cluster-soa-cluster   ClusterIP      10.96.166.96    <none>           8001/TCP         23h
+service/soainfra-osb-server1           ClusterIP      None            <none>           9001/TCP         23h
+service/soainfra-osb-server2           ClusterIP      10.96.174.34    <none>           9001/TCP         19m
+service/soainfra-osb-server3           ClusterIP      10.96.250.216   <none>           9001/TCP         19m
+service/soainfra-osb-server4           ClusterIP      10.96.253.13    <none>           9001/TCP         19m
+service/soainfra-osb-server5           ClusterIP      10.96.72.25     <none>           9001/TCP         19m
+service/soainfra-soa-server1           ClusterIP      None            <none>           8001/TCP         23h
+service/soainfra-soa-server2           ClusterIP      10.96.128.229   <none>           8001/TCP         19m
+service/soainfra-soa-server3           ClusterIP      10.96.251.159   <none>           8001/TCP         19m
+service/soainfra-soa-server4           ClusterIP      10.96.149.141   <none>           8001/TCP         19m
+service/soainfra-soa-server5           ClusterIP      10.96.49.11     <none>           8001/TCP         19m
+
+NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/oracle-db   1/1     1            1           27h
+
+NAME                                   DESIRED   CURRENT   READY   AGE
+replicaset.apps/oracle-db-78b7566996   1         1         1       27h
+
+NAME                                             COMPLETIONS   DURATION   AGE
+job.batch/soainfra-create-soa-infra-domain-job   1/1           4m51s      23h
+```
 
 #### Testing REST API ####
 
@@ -355,15 +406,15 @@ Ready to call operator REST APIs
         {
           "rel": "self",
           "title": "",
-          "href": "/operator/latest/domains/wls-k8s-domain"
+          "href": "/operator/latest/domains/soainfra-domain"
         },
         {
           "rel": "canonical",
           "title": "",
-          "href": "/operator/latest/domains/wls-k8s-domain"
+          "href": "/operator/latest/domains/soainfra-domain"
         }
       ],
-      "domainUID": "wls-k8s-domain"
+      "domainUID": "soainfra-domain"
     }
   ]
 }
