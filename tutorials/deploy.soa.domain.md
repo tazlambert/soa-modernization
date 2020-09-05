@@ -1,46 +1,54 @@
 # Deploy SOA Domain to Kubernetes #
 
-In this step we are going to deploy the WebLogic Image with Domain and Application in Pods while the logs will be placed in Persistent Volume.
+In this step we are going to deploy the Oracle SOA Image in Persistent Volume.
 
-#### Preparing the Oracle File Server for Oracle Kubernetes PV and PVC ####
+### Preparing the Oracle File Server for SOA Suite Kubernetes PV and PVC ###
 
 We start from the home page of the Oracle Cloud Console, and click the burger button and direct it to File Storage and choose Mount Target that will be acted as NFS Server with its IP server that will be used further.
 
-![alt text](images/progra/pvpvc1.png)
+![alt text](images/201.jpg)
 
-Click Create Mount Target
+Click "Create File System"
 
-![alt text](images/progra/pvpvc2.png)
+![alt text](images/202.jpg)
 
-Then input the name of the desired mount target, then choose the same VCN and Subnet that the OKE and bastion resides.
+You can create File System and Mount Targets with the default values. But here in case you want to rename the file System and mount targets, follow below steps. Note: Make Sure the Virtual Cloud Network in Mount Target refers to the one where your OKE.
 
-![alt text](images/progra/pvpvc3.png)
+![alt text](images/203.jpg)
 
-The final result as below:
+Edit and change the File System name to say "sharevolume".  Next "Edit" and change the Mount Target name to sharevolume and make sure the Virtual Cloud Network selected is "soademo" and the Subnet as "oke_workers" ( i.e., subnet of the worker nodes)  the one which our  is using. Click "Create"
 
-![alt text](images/progra/pvpvc4.png)
+![alt text](images/204.jpg)
 
-After Finish creating the Mount Target as the NFS Server, then we need to create the directory that will be used by creating the File System, which can be started by clicking burger menu and File Storage then click File Systems.
+Once the File System is created, it lands at below page. Click on "sharevolume" link.
 
-![alt text](images/progra/pvpvc5.png)
+![alt text](images/205.jpg)
 
-Click Create File System
+Click on Mount Commands which gives details on how to mount this file system on your instances:
 
-![alt text](images/progra/pvpvc6.png)
+![alt text](images/206.jpg)
 
-Then input the name of the desired file system that will reflect with directory path, then choose the Mount Target that was created.
+Mount Command pop up gives details on what must be configured on security list to access the mount targets from instances. Note down the mount command and Ingress/Egresss Rules which need to be added.
 
-![alt text](images/progra/pvpvc7.png)
+![alt text](images/207.jpg)
 
-Please repeat the same process several times, in this case;
+This filesystem will be used for many purpose, in this case;
 - grafana
 - prometheus
 - prometheus alert
-- weblogic log home
+- soa domain home
 
-![alt text](images/progra/pvpvc8.png)
+Now for SOA Domain, it will requires its mounted directory to be in full permission mode (777) to do that we need to mount the /sharevolume to the bastion and create root folder and give 777 permission:
+```
+sudo mkdir /mnt/sharevolume
+sudo mount 10.0.10.9:/sharevolume /mnt/sharevolume
+sudo mkdir /mnt/sharevolume/soa
+sudo chmod -Rf 777 /mnt/sharevolume/soa
+```
 
-#### Preparing the Kubernetes cluster to run WebLogic domains ####
+### Preparing the Oracle Registry (OCIR) to get SOA domains and Database Docker images ###
+
+### Preparing the Kubernetes cluster to run SOA domains ###
 
 Create the domain namespace:
 ```
