@@ -48,6 +48,29 @@ sudo chmod -Rf 777 /mnt/sharevolume/soa
 
 ### Preparing the Oracle Registry (OCIR) to get SOA domains and Database Docker images ###
 
+Follow the below steps to configure OCIR to push and pull images from OCIR. Create an "Auth token" which will be used as docker password to push/pull images from OCIR. Login to Console and navigate to User Settings, which is in the drop down under your OCI username in the top nav 
+
+![alt text](images/208.jpg)
+
+On User Details page, select "Auth Tokens" in the left nav and then Click the "Generate Token" button. Enter a Name and Click "Generate Token"
+
+![alt text](images/209.jpg)
+![alt text](images/210.jpg)
+
+Token will get generated, copy the generated token. NOTE: It will only be displayed this one time, and you will need to copy it to a secure place for further use.
+
+![alt text](images/211.jpg)
+
+Using the Docker CLI to login to OCIR ( for phoenix : phx.ocir.io , ashburn: iad.ocir.io, hyderabad: hyd.ocir.io etc) and we assume that you already have docker image for SOA Domain and Oracle Database in your bastion or PC.
+
+```
+docker login hyd.ocir.io -u axr17p4hbhaw/oracleidentitycloudservice/lambertus.wardana@oracle.com
+docker tag localhost/oracle/database-enterprise:12.2.0.1-slim hyd.ocir.io/axr17p4hbhaw/oracle/database-enterprise:12.2.0.1
+docker tag localhost/oracle/soa-suite:12.2.1.4 hyd.ocir.io/axr17p4hbhaw/oracle/dsoa-suite:12.2.1.4
+docker push hyd.ocir.io/axr17p4hbhaw/oracle/database-enterprise:12.2.0.1
+docker push hyd.ocir.io/axr17p4hbhaw/oracle/dsoa-suite:12.2.1.4
+```
+
 ### Preparing the Kubernetes cluster to run SOA domains ###
 
 Create the domain namespace:
