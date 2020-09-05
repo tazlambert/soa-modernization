@@ -70,7 +70,7 @@ NAME         STATUS   ROLES   AGE     VERSION
 10.0.10.15   Ready    node    3m4s    v1.15.7
 10.0.10.16   Ready    node    3m10s   v1.15.7
 ```
-The certificate cannot be conveniently changed after installation of the operator. The script creates the secret in the weblogic-operator namespace with the self-signed certificate and private key.
+The certificate cannot be conveniently changed after installation of the operator. The script creates the secret in the weblogic-operator opns namespace with the self-signed certificate and private key.
 
     ./generate-external-rest-identity.sh DNS:localhost,IP:127.0.0.1,IP:129.146.196.139,IP:147.154.103.105,IP:10.0.10.15,IP:10.0.10.16 -n opns > selfsignedcert.yaml
 
@@ -110,11 +110,11 @@ You can override default configuration values in the operator Helm chart by doin
 - Overriding individual values directly on the Helm command line, using the `--set` option.
 - Creating a custom YAML from the [template YAML](https://github.com/oracle/weblogic-kubernetes-operator/blob/master/kubernetes/charts/weblogic-operator/values.yaml) file containing the values to be overridden, and specifying the `--value` option on the Helm command line.
 ```
-serviceAccount: "weblogic-operator-sa"
+serviceAccount: "op-sa"
 dedicated: false
 domainNamespaces:
   - "default"
-image: "oracle/weblogic-kubernetes-operator:2.5.0"
+image: "oracle/weblogic-kubernetes-operator:3.0.1"
 imagePullPolicy: "IfNotPresent"
 remoteDebugNodePortEnabled: false
 suspendOnDebugStartup: false
@@ -149,7 +149,7 @@ The result has to be similar:
 ```
 NAME: weblogic-operator
 LAST DEPLOYED: Sat May  9 08:45:31 2020
-NAMESPACE: weblogic-operator-ns
+NAMESPACE: opns
 STATUS: deployed
 REVISION: 1
 TEST SUITE: None
@@ -181,7 +181,7 @@ REST_ADDR="https://${KUBERNETES_SERVER}:${REST_PORT}"
 SECRET=`kubectl get serviceaccount op-sa -n opns -o jsonpath='{.secrets[0].name}'`
 ENCODED_TOKEN=`kubectl get secret ${SECRET} -n opns -o jsonpath='{.data.token}'`
 TOKEN=`echo ${ENCODED_TOKEN} | base64 --decode`
-OPERATOR_CERT_DATA=`kubectl get secret -n weblogic-operator-ns weblogic-operator-external-rest-identity -o jsonpath='{.data.tls\.crt}'`
+OPERATOR_CERT_DATA=`kubectl get secret -n opns weblogic-operator-external-rest-identity -o jsonpath='{.data.tls\.crt}'`
 OPERATOR_CERT_FILE="/tmp/operator.cert.pem"
 echo ${OPERATOR_CERT_DATA} | base64 --decode > ${OPERATOR_CERT_FILE}
 cat ${OPERATOR_CERT_FILE}
